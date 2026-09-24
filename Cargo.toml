@@ -1,0 +1,18 @@
+[package]
+name = "cgvt"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.88"
+description = "Government eID admission gate for cvld: selectively disclosed, member-bound eligibility without real identity"
+license = "LGPL-3.0-only WITH LGPL-3.0-linking-exception"
+repository = "https://github.com/cmtymeet/cgvt"
+readme = "README.md"
+publish = false
+include = ["Cargo.toml", "src/**", "README.md", "LICENSE", "LICENSE.md", "LICENSES/LGPL-3.0-only.txt", "LICENSES/LGPL-3.0-linking-exception.txt", "LICENSES/GPL-3.0-only.txt"]
+
+[lib]
+crate-type = ["rlib"]
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
