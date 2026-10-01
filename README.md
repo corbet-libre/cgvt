@@ -1,22 +1,24 @@
 # cgvt
 
-**Government eID admission gate for cvld.**
+**Government-document admission gate for cvld.**
 
-`cgvt` will verify a member's government-issued electronic identity
-credential (for example the Swiss E-ID or an EU Digital Identity Wallet)
-through selective disclosure. cvld receives only the requested attributes
-(for example "is a person", "over 18") bound to an opaque community member,
-never a name, birth date, document number or other real identity.
+`cgvt` is reserved for two government-document routes: a selectively disclosed
+eID presentation and an established vendor's document-verification result.
+The gate receives only the requested eligibility attributes bound to an opaque
+member; raw documents, identity fields and biometric material stay outside
+cvld and this library.
 
-Status: name reserved, no implementation yet. Scope, supported wallets and
-the disclosed-attribute set are still to be decided.
+Status: no implementation or qualified provider adapter exists. Wallet/vendor
+selection and the requested attribute set remain open. The configured coverage
+gate must reject an empty production inventory.
 
 ## Boundaries
 
-- `cgvt` proves a credential presentation; `cvld` combines gates into
-  eligibility; `cfrm` owns community policy.
-- Wallet and issuer specifics stay in this crate. No real identity data
-  enters attestation output, logs, errors or fixtures.
+One invocation checks one provider result. `cfbk` owns ordering/fallback and
+`crbk` owns requirements; cvld combines gate results into eligibility. Community
+policy belongs under `cvld`/`cmty`, not Forum. No confidence ranking, local
+cryptographic primitive, live identity request or raw identity fixture is
+introduced. See [the current contract](docs/CONTRACT.md).
 
 ## License
 
@@ -24,3 +26,9 @@ Copyright 2026 Julian Y. Richard Corbet. Licensed under
 [LGPL-3.0-only](LICENSES/LGPL-3.0-only.txt)
 [WITH LGPL-3.0-linking-exception](LICENSES/LGPL-3.0-linking-exception.txt).
 See [LICENSE.md](LICENSE.md).
+
+## Continuous verification
+
+Dependency updates follow main and are tested against one CI-resolved lockfile.
+Line and branch coverage target 100%; failures remain blocking. See
+[the coverage contract](docs/COVERAGE.md) for measurement and exclusions.
