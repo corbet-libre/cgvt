@@ -110,7 +110,8 @@ impl Veriff {
                     identifier(s)?;
                 }
                 Ok((
-                    format!("veriff-document:{}:{country}:{kind}", self.account),
+                    serde_json::to_string(&("veriff-document", &self.account, country, kind))
+                        .map_err(|_| Error::Configuration)?,
                     number.to_owned(),
                 ))
             })

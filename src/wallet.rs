@@ -204,10 +204,12 @@ impl WalletVerifier {
                     .ok_or(Error::Unsupported)?;
                 identifier(id)?;
                 Ok((
-                    format!(
-                        "sd-jwt:{}:{}",
-                        self.config.issuer, self.config.credential_type
-                    ),
+                    serde_json::to_string(&(
+                        "sd-jwt",
+                        &self.config.issuer,
+                        &self.config.credential_type,
+                    ))
+                    .map_err(|_| Error::Configuration)?,
                     id.into(),
                 ))
             })
