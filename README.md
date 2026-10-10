@@ -16,7 +16,7 @@ security limits, costs and tests. SD-JWT transport/DCQL/mDOC and other vendors
 remain additional candidates. Implemented local verification has no provider API
 charge; prior issuance and verification-session charges are separate.
 
-Crow validates real signed fixture flows and adversarial tests; live provider
+CI validates real signed fixture flows and adversarial tests; live provider
 qualification is unrun. Never substitute a fixture for production evidence.
 
 Copyright 2026 Julian Y. Richard Corbet.
