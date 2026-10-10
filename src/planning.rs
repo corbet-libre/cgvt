@@ -26,5 +26,5 @@ pub(crate) fn quote(parts: &[&[u8]], context: &Context, mode: Mode) -> Quote {
         Mode::Sandbox => 1,
         Mode::Production => 2,
     }]);
-    Quote{price:Price::Exact(Amount{unit:Unit{code:"provider-api-calls".into(),scale:0},atoms:0}),source:"Local authenticated-result verification; upstream issuance/session fees and local compute excluded".into(),valid_until:context.expires_at,binding:format!("{:x}",hash.finalize())}
+    Quote{price:Price::Exact(Amount{unit:Unit{code:"provider-api-calls".into(),scale:0},atoms:0}),source:"Local authenticated-result verification; upstream issuance/session fees and local compute excluded".into(),valid_until:context.expires_at,binding:hex::encode(hash.finalize())}
 }
