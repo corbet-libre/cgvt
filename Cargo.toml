@@ -3,9 +3,9 @@ name = "cgvt"
 version = "0.0.0"
 edition = "2024"
 rust-version = "1.88"
-description = "Government eID admission gate for cvld: selectively disclosed, member-bound eligibility without real identity"
+description = "Government identity verification, requested claims and scoped registration limits"
 license = "LGPL-3.0-only WITH LGPL-3.0-linking-exception"
-repository = "https://github.com/corbet-foss/cgvt"
+repository = "https://git.corbet.ch/corbet-foss/cgvt"
 readme = "README.md"
 publish = false
 include = ["Cargo.toml", "src/**", "README.md", "LICENSE", "LICENSE.md", "LICENSES/LGPL-3.0-only.txt", "LICENSES/LGPL-3.0-linking-exception.txt", "LICENSES/GPL-3.0-only.txt"]
@@ -16,3 +16,23 @@ crate-type = ["rlib"]
 [lints.rust]
 unsafe_code = "forbid"
 missing_docs = "warn"
+
+[dependencies]
+cfbk = { git = "https://git.corbet.ch/corbet-foss/cfbk", branch = "main" }
+sd-jwt-payload = "0.5"
+jsonwebtoken = { version = "11", default-features = false, features = ["rust_crypto"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+hmac = "0.13"
+sha2 = "0.11"
+base64 = "0.22"
+hex = "0.4"
+zeroize = "1"
+thiserror = "2"
+time = { version = "0.3", features = ["parsing", "macros"] }
+
+[dev-dependencies]
+futures = "0.3"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }

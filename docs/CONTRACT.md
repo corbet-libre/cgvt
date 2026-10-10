@@ -1,15 +1,78 @@
-# Government-document gate boundary
+# Government identity domain contract
 
-The decided routes are government eID selective disclosure and an established
-vendor document check. One invocation verifies one provider result, bound to
-an opaque member and its requested eligibility attributes. `cfbk` owns
-provider/channel ordering and fallback; `crbk` supplies requirements.
+cgvt is reusable independently of cvld. It authenticates upstream evidence,
+projects caller-requested information and derives supported scoped comparison
+identities. All inputs/results/session state remain in RAM. No database, file
+cache, hidden persistence, provider discovery or live HTTP dispatch exists.
 
-Names, birth dates, document numbers, addresses, portraits and raw document
-material must not enter this library, cvld outputs, diagnostics or fixtures.
-No local cryptographic primitive or confidence score is permitted.
+## Implemented routes
 
-This repository remains an unimplemented reservation. No wallet/vendor adapter
-has been selected or qualified, and no live provider calls or spending are
-authorized by the fixture-only policy task. Empty production coverage is a
-blocking failure, not evidence of a working gate.
+**Wallet/eID: holder-bound SD-JWT VC.** `wallet::WalletVerifier` uses
+[sd-jwt-payload](https://github.com/iotaledger/sd-jwt-payload) for disclosure
+resolution and [jsonwebtoken](https://github.com/Keats/jsonwebtoken) for actual
+issuer/holder signatures. Caller-supplied trusted issuer JWK, exact issuer and
+credential type establish government credential semantics; a signed JWT alone
+does not. Explicit asymmetric algorithms, `dc+sd-jwt`/`kb+jwt` types, complete
+holder key binding, audience, nonce, SD hash, expiry/not-before/issued time and
+maximum holder-proof age are checked with caller time. SHA-256 disclosure
+resolution rejects duplicate and unused disclosures. No issuer network lookup,
+embedded-key trust, unsigned credential or unbound bearer fallback is accepted.
+
+This verifies the credential presentation, not the entire OpenID4VP transport,
+DCQL negotiation, X.509 trust-list distribution or mDOC device authentication.
+Those remain explicit additional integrations, not claimed implementations.
+
+**Vendor: Veriff decision webhook.** `veriff::Veriff` verifies HMAC-SHA256 over
+exact incoming bytes using the explicitly configured integration secret. It
+checks known session ID, independently bound vendorData challenge, approved
+status/code and bounded decision time. Pending decisions are distinct from
+refusal. Original extension fields remain available only through requested
+private output. Session creation and capture are external operations; this
+library does not trigger billing or trust a caller-supplied success boolean.
+[Authentication](https://devdocs.veriff.com/docs/hmac-authentication-and-endpoint-security),
+[decision schema](https://devdocs.veriff.com/apidocs/v1sessionsiddecision-1).
+
+## Information and identity
+
+`VerifiedIdentity` cannot be constructed/deserialized from arbitrary JSON.
+`project` checks the exact context and returns only requested attributes and
+named predicates. Equality and explicit date-cutoff predicates introduce no
+minimum age or jurisdictional rule. Provider-reported fields are authenticated
+as provider statements; arbitrary extensions are not automatically legal facts.
+Original signed representation is available only on explicit `complete` request.
+Default Debug and errors expose no person/document/session information.
+
+Wallet comparison identity uses an explicitly configured stable issuer claim,
+within issuer and credential-type namespace. Veriff supports authenticated
+country/type/document-number reuse only, scoped additionally to the integration;
+it does not prove one person cannot hold multiple documents. Names, birth dates,
+endUserId, vendorData and session IDs never substitute for identity. No
+cross-provider equivalence is inferred. Missing supported identity refuses.
+
+Stable caller HMAC keys derive opaque scoped identities through RustCrypto.
+They are distinct from rotatable Veriff secrets. `RegistrationStore` is a trusted
+caller-owned atomic check-and-reserve port for general X registrations, policy
+scope and exact operation retries. Window/release/reset meaning belongs to the
+caller. No volatile counter is represented as durable uniqueness.
+
+## Costs, credentials and qualification
+
+Local verification previews use cfbk quotes with zero provider API calls. They
+exclude local compute and all prior issuance/capture/session fees. Planning is
+inert; it does not query potentially billable price endpoints. Caller-configured
+provider tariffs and cfbk authorization are required before any future outbound
+billable adapter. Wallet simulation returns a distinct non-proof summary.
+
+Hosts inject trusted issuer JWK/configuration, Veriff integration account and
+secret, independent subject/action/challenge/time, and a separate stable identity
+key. There is no environment discovery or secret-file reader. Owned private
+original buffers zeroize on drop; parser/JWT/JSON libraries create temporary
+copies, and caller copies, process dumps and swap remain host responsibilities.
+
+Tests use real Ed25519 issuer/holder signatures and actual HMAC decisions,
+selective disclosures, tampering, wrong context, requested projection and
+concurrent X-registration claims. Keys under tests/fixtures are inert local test
+material. No live issuer, wallet or Veriff account has been contacted. Crow checks
+and independent review are required before claiming validation. Other provider
+catalogue entries must remain labelled candidates until their real integration
+and tests are added. No deployment or registry publication is authorized.
