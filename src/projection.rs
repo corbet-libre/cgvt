@@ -96,7 +96,7 @@ impl VerifiedIdentity {
     /// are never substituted for a stable verified underlying identity.
     pub fn comparison(&self, key: &IdentityKey, scope: &str) -> Result<ScopedIdentity, Error> {
         let (domain, id) = self.identity.as_ref().ok_or(Error::Unsupported)?;
-        key.derive(domain, id, scope)
+        key.derive(domain, id, scope, self.context.expires_at)
     }
 }
 /// Private requested result. Consumers explicitly choose which fields to disclose.

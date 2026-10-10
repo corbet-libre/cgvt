@@ -351,6 +351,7 @@ fn general_registration_limits_and_atomic_competitors() {
                         maximum: 2,
                         operation: format!("op-{i}"),
                     },
+                    1100,
                 ))
                 .is_ok()
             })
@@ -368,15 +369,16 @@ fn general_registration_limits_and_atomic_competitors() {
         maximum: 1,
         operation: "same".into(),
     };
-    assert!(block_on(id.register(&*registry, &request)).is_ok());
-    assert!(block_on(id.register(&*registry, &request)).is_ok());
+    assert!(block_on(id.register(&*registry, &request, 1100)).is_ok());
+    assert!(block_on(id.register(&*registry, &request, 1100)).is_ok());
     assert!(
         block_on(id.register(
             &*registry,
             &Registration {
                 maximum: 2,
                 ..request
-            }
+            },
+            1100
         ))
         .is_err()
     );
@@ -387,7 +389,8 @@ fn general_registration_limits_and_atomic_competitors() {
                 policy_scope: "p".into(),
                 maximum: 0,
                 operation: "op".into()
-            }
+            },
+            1100
         ))
         .is_err()
     );
@@ -671,5 +674,24 @@ fn malformed_signed_inputs_cover_parser_and_document_failures() {
     assert!(
         v.verify(&b, &s, "session-id", &context(), 1100, 1000)
             .is_err()
+    );
+}
+
+#[test]
+fn retained_comparison_handles_do_not_register_after_evidence_expiry() {
+    let id = wallet()
+        .verify(&sign(claims(), binding(), &[]), &context(), 1100)
+        .unwrap()
+        .comparison(&IdentityKey::new([1; 32]).unwrap(), "scope")
+        .unwrap();
+    let request = Registration {
+        policy_scope: "window".into(),
+        maximum: 1,
+        operation: "op".into(),
+    };
+    let store = Registry::default();
+    assert_eq!(
+        block_on(id.register(&store, &request, 1500)),
+        Err(Error::Rejected)
     );
 }
