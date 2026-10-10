@@ -76,3 +76,8 @@ material. No live issuer, wallet or Veriff account has been contacted. Crow chec
 and independent review are required before claiming validation. Other provider
 catalogue entries must remain labelled candidates until their real integration
 and tests are added. No deployment or registry publication is authorized.
+
+`VerifiedIdentity::upstream` explicitly exposes the private original representation
+even if a requested projection cannot be satisfied. It grants no fresh proof.
+Offline verification borrows the caller's original bytes, so the caller already
+retains complete inputs when authentication itself refuses them.

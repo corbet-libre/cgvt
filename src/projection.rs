@@ -39,6 +39,11 @@ pub struct VerifiedIdentity {
     pub(crate) identity: Option<(String, String)>,
 }
 impl VerifiedIdentity {
+    /// Explicit access to the complete private upstream representation, including
+    /// after a requested projection refuses. These bytes do not grant fresh proof.
+    pub fn upstream(&self) -> &Private {
+        &self.original
+    }
     /// Project only requested attributes and predicates; no persistence occurs.
     pub fn project(
         &self,

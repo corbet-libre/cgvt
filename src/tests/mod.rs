@@ -137,6 +137,20 @@ fn real_wallet_signatures_disclosures_projection_and_context() {
     other.action = "different".into();
     assert!(verified.project(&request, &other, 1100).is_err());
     assert!(verified.project(&request, &ctx, 1500).is_err());
+    assert_eq!(verified.upstream().expose(), jwt.as_bytes());
+    assert!(
+        verified
+            .project(
+                &Request {
+                    attributes: vec!["/unsupported-private-field".into()],
+                    ..Request::default()
+                },
+                &ctx,
+                1100
+            )
+            .is_err()
+    );
+    assert_eq!(verified.upstream().expose(), jwt.as_bytes());
     let key = IdentityKey::new([7; 32]).unwrap();
     let id = verified.comparison(&key, "scope").unwrap();
     assert_ne!(id, verified.comparison(&key, "other").unwrap());
