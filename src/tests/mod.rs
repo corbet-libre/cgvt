@@ -291,8 +291,9 @@ fn veriff_exact_body_signature_full_extensions_and_document_identity() {
     assert!(v.verify(&body, &sig, "session-id", &ctx, 1100, 0).is_err());
     assert!(v.verify(&body, &sig, "session-id", &ctx, 1100, 50).is_err());
 }
+type RegistryState = BTreeMap<([u8; 32], String), BTreeMap<String, u64>>;
 #[derive(Default)]
-struct Registry(Mutex<BTreeMap<([u8; 32], String), BTreeMap<String, u64>>>);
+struct Registry(Mutex<RegistryState>);
 impl RegistrationStore for Registry {
     async fn reserve(
         &self,
