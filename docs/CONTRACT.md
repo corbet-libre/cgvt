@@ -81,3 +81,15 @@ and tests are added. No deployment or registry publication is authorized.
 even if a requested projection cannot be satisfied. It grants no fresh proof.
 Offline verification borrows the caller's original bytes, so the caller already
 retains complete inputs when authentication itself refuses them.
+
+
+Async registration/consumption takes an injected trusted live clock, rather than
+reusing a pre-await timestamp. It rechecks exclusive validity after awaited
+state work; a clock rollback refuses the operation. State completion after the validity deadline creates no fresh success receipt.
+The caller still retains the original verified value and its requested private
+information. This local operation performs no provider dispatch.
+Atomic registration/consumption ports receive the exclusive validity deadline.
+The host must check its trusted current time within the atomic commit after any
+queue wait; an expired attempt leaves state unchanged. If time expires after a
+valid commit but before return, the API refuses a fresh success receipt and does
+not undo the host's committed reservation.

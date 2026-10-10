@@ -325,7 +325,9 @@ impl RegistrationStore for Registry {
         scope: &str,
         max: u64,
         op: &str,
+        valid_until: u64,
     ) -> Result<(), Error> {
+        assert!(valid_until > 1100);
         let mut map = self.0.lock().unwrap();
         let row = map.entry((*id.bytes(), scope.into())).or_default();
         if let Some(old) = row.get(op) {
@@ -365,7 +367,7 @@ fn general_registration_limits_and_atomic_competitors() {
                         maximum: 2,
                         operation: format!("op-{i}"),
                     },
-                    1100,
+                    &|| 1100,
                 ))
                 .is_ok()
             })
@@ -383,8 +385,8 @@ fn general_registration_limits_and_atomic_competitors() {
         maximum: 1,
         operation: "same".into(),
     };
-    assert!(block_on(id.register(&*registry, &request, 1100)).is_ok());
-    assert!(block_on(id.register(&*registry, &request, 1100)).is_ok());
+    assert!(block_on(id.register(&*registry, &request, &|| 1100)).is_ok());
+    assert!(block_on(id.register(&*registry, &request, &|| 1100)).is_ok());
     assert!(
         block_on(id.register(
             &*registry,
@@ -392,7 +394,7 @@ fn general_registration_limits_and_atomic_competitors() {
                 maximum: 2,
                 ..request
             },
-            1100
+            &|| 1100
         ))
         .is_err()
     );
@@ -404,7 +406,7 @@ fn general_registration_limits_and_atomic_competitors() {
                 maximum: 0,
                 operation: "op".into()
             },
-            1100
+            &|| 1100
         ))
         .is_err()
     );
@@ -705,7 +707,9 @@ fn retained_comparison_handles_do_not_register_after_evidence_expiry() {
     };
     let store = Registry::default();
     assert_eq!(
-        block_on(id.register(&store, &request, 1500)),
+        block_on(id.register(&store, &request, &|| 1500)),
         Err(Error::Rejected)
     );
 }
+
+mod clock;
