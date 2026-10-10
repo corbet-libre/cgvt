@@ -21,3 +21,6 @@ qualification is unrun. Never substitute a fixture for production evidence.
 
 Copyright 2026 Julian Y. Richard Corbet.
 [LGPL-3.0-only WITH LGPL-3.0-linking-exception](LICENSE.md).
+
+See the [provider and protocol catalogue](docs/PROVIDERS.md) for implemented paths,
+research candidates, credentials, cost bases and unsupported guarantees.
