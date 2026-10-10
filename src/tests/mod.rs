@@ -644,7 +644,7 @@ fn requested_predicates_and_vendor_lifetimes_fail_closed() {
 fn malformed_signed_inputs_cover_parser_and_document_failures() {
     let w = wallet();
     let mut c = claims();
-    c["cnf"]["jwk"] = json!({"kty":"unknown"});
+    c["cnf"]["jwk"] = json!(null);
     assert!(
         w.verify(&sign(c, binding(), &[]), &context(), 1100)
             .is_err()
