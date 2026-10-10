@@ -47,7 +47,20 @@ fn binding() -> Value {
 fn disclosure() -> String {
     URL_SAFE_NO_PAD.encode(br#"["inert-random-salt","birthdate","2000-01-01"]"#)
 }
-fn sign(mut claims: Value, mut bind: Value, disclosures: &[String]) -> String {
+fn sign(claims: Value, bind: Value, disclosures: &[String]) -> String {
+    let mut issuer = Header::new(Algorithm::EdDSA);
+    issuer.typ = Some("dc+sd-jwt".into());
+    let mut holder = Header::new(Algorithm::EdDSA);
+    holder.typ = Some("kb+jwt".into());
+    sign_headers(claims, bind, disclosures, issuer, holder)
+}
+fn sign_headers(
+    mut claims: Value,
+    mut bind: Value,
+    disclosures: &[String],
+    header: Header,
+    holder: Header,
+) -> String {
     if !disclosures.is_empty() {
         claims["_sd"] = json!(
             disclosures
@@ -56,8 +69,6 @@ fn sign(mut claims: Value, mut bind: Value, disclosures: &[String]) -> String {
                 .collect::<Vec<_>>()
         );
     }
-    let mut header = Header::new(Algorithm::EdDSA);
-    header.typ = Some("dc+sd-jwt".into());
     let issuer = encode(
         &header,
         &claims,
@@ -70,9 +81,8 @@ fn sign(mut claims: Value, mut bind: Value, disclosures: &[String]) -> String {
         format!("{issuer}~{}~", disclosures.join("~"))
     };
     bind["sd_hash"] = json!(Sha256Hasher::new().encoded_digest(&prefix));
-    header.typ = Some("kb+jwt".into());
     let kb = encode(
-        &header,
+        &holder,
         &bind,
         &EncodingKey::from_ed_pem(include_bytes!("fixtures/holder.pem")).unwrap(),
     )
@@ -468,5 +478,198 @@ fn previews_and_local_simulation_never_dispatch() {
     assert_ne!(
         v.preview(b"a", "session", &ctx, Mode::Production).binding,
         v.preview(b"b", "session", &ctx, Mode::Production).binding
+    );
+}
+
+#[test]
+fn signed_header_extensions_and_invalid_disclosures_never_become_claims() {
+    let w = wallet();
+    for which in 0..4 {
+        let mut issuer = Header::new(Algorithm::EdDSA);
+        issuer.typ = Some("dc+sd-jwt".into());
+        let mut holder = Header::new(Algorithm::EdDSA);
+        holder.typ = Some("kb+jwt".into());
+        match which {
+            0 => issuer.typ = Some("JWT".into()),
+            1 => issuer.crit = Some(vec!["unknown".into()]),
+            2 => holder.typ = Some("JWT".into()),
+            _ => holder.crit = Some(vec!["unknown".into()]),
+        }
+        assert!(
+            w.verify(
+                &sign_headers(claims(), binding(), &[], issuer, holder),
+                &context(),
+                1100
+            )
+            .is_err()
+        );
+    }
+    let mut c = claims();
+    c["nbf"] = json!(900);
+    c["iat"] = json!("900");
+    assert!(
+        w.verify(&sign(c, binding(), &[]), &context(), 1100)
+            .is_err()
+    );
+    let mut c = claims();
+    c["nbf"] = json!(900);
+    c.as_object_mut().unwrap().remove("iat");
+    assert!(w.verify(&sign(c, binding(), &[]), &context(), 1100).is_ok());
+    // Oversized but correctly hashed disclosure still refuses before projection.
+    let huge = URL_SAFE_NO_PAD
+        .encode(serde_json::to_vec(&json!(["salt", "large", "x".repeat(50000)])).unwrap());
+    assert!(
+        w.verify(&sign(claims(), binding(), &[huge]), &context(), 1100)
+            .is_err()
+    );
+    let collision = URL_SAFE_NO_PAD.encode(br#"["salt","sub","different"]"#);
+    assert!(
+        w.verify(&sign(claims(), binding(), &[collision]), &context(), 1100)
+            .is_err()
+    );
+    // Binding hash was signed for different disclosure bytes.
+    let jwt = sign(claims(), binding(), &[disclosure()]);
+    let altered = jwt.replace(
+        &disclosure(),
+        &URL_SAFE_NO_PAD.encode(br#"["salt","birthdate","1999-01-01"]"#),
+    );
+    assert!(w.verify(&altered, &context(), 1100).is_err());
+    let key = serde_json::from_str(include_str!("fixtures/issuer.json")).unwrap();
+    let mut cfg = config();
+    cfg.identity_claim = None;
+    let without = wallet::WalletVerifier::new(cfg, &key)
+        .unwrap()
+        .verify(&sign(claims(), binding(), &[]), &context(), 1100)
+        .unwrap();
+    assert!(
+        without
+            .comparison(&IdentityKey::new([1; 32]).unwrap(), "scope")
+            .is_err()
+    );
+}
+#[test]
+fn requested_predicates_and_vendor_lifetimes_fail_closed() {
+    let result = wallet()
+        .verify(
+            &sign(claims(), binding(), &[disclosure()]),
+            &context(),
+            1100,
+        )
+        .unwrap();
+    let predicates = BTreeMap::from([
+        (
+            "not_old_enough".into(),
+            Predicate::DateOnOrBefore {
+                path: "/birthdate".into(),
+                cutoff: "1999-01-01".into(),
+            },
+        ),
+        (
+            "not_equal".into(),
+            Predicate::Equals {
+                path: "/sub".into(),
+                value: json!("other"),
+            },
+        ),
+    ]);
+    assert!(
+        result
+            .project(
+                &Request {
+                    predicates,
+                    ..Request::default()
+                },
+                &context(),
+                1100
+            )
+            .unwrap()
+            .predicates
+            .values()
+            .all(|v| !*v)
+    );
+    let too_many = (0..65)
+        .map(|n| {
+            (
+                n.to_string(),
+                Predicate::Equals {
+                    path: "/sub".into(),
+                    value: json!("other"),
+                },
+            )
+        })
+        .collect();
+    assert!(
+        result
+            .project(
+                &Request {
+                    predicates: too_many,
+                    ..Request::default()
+                },
+                &context(),
+                1100
+            )
+            .is_err()
+    );
+    let v = veriff::Veriff::new("account".into(), vec![7; 32]).unwrap();
+    for at in ["1969-12-31T23:59:59Z", "1970-01-01T00:16:40Z"] {
+        let mut d = decision();
+        d["verification"]["decisionTime"] = json!(at);
+        let (b, s) = authenticate(&d);
+        assert!(
+            v.verify(&b, &s, "session-id", &context(), 1100, 200)
+                .is_err()
+        );
+    }
+    assert!(
+        v.verify(
+            &vec![0; 1_048_577],
+            &"a".repeat(64),
+            "session-id",
+            &context(),
+            1100,
+            1000
+        )
+        .is_err()
+    );
+    let quote = v.preview(
+        b"fixture",
+        "session-id",
+        &context(),
+        cfbk::cost::Mode::Production,
+    );
+    assert!(!quote.binding.contains("fixture"));
+}
+
+#[test]
+fn malformed_signed_inputs_cover_parser_and_document_failures() {
+    let w = wallet();
+    let mut c = claims();
+    c["cnf"]["jwk"] = json!({"kty":"unknown"});
+    assert!(
+        w.verify(&sign(c, binding(), &[]), &context(), 1100)
+            .is_err()
+    );
+    assert!(
+        w.verify(
+            &sign(claims(), binding(), &["%%%".into()]),
+            &context(),
+            1100
+        )
+        .is_err()
+    );
+    let mut jwt = sign(claims(), binding(), &[]).into_bytes();
+    let dot = jwt.iter().position(|b| *b == b'.').unwrap();
+    jwt[dot + 1] = if jwt[dot + 1] == b'a' { b'b' } else { b'a' };
+    assert!(
+        w.verify(std::str::from_utf8(&jwt).unwrap(), &context(), 1100)
+            .is_err()
+    );
+    let v = veriff::Veriff::new("account".into(), vec![7; 32]).unwrap();
+    let mut d = decision();
+    d["verification"]["document"]["number"] = json!("");
+    let (b, s) = authenticate(&d);
+    assert!(
+        v.verify(&b, &s, "session-id", &context(), 1100, 1000)
+            .is_err()
     );
 }

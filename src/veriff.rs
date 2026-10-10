@@ -61,7 +61,7 @@ impl Veriff {
         }
         let signature = hex::decode(signature).map_err(|_| Error::Rejected)?;
         let mut mac = <Hmac<Sha256> as KeyInit>::new_from_slice(&self.secret)
-            .map_err(|_| Error::Configuration)?;
+            .expect("HMAC accepts keys of any length");
         mac.update(body);
         mac.verify_slice(&signature).map_err(|_| Error::Rejected)?;
         let value: Value = serde_json::from_slice(body).map_err(|_| Error::Rejected)?;
@@ -110,8 +110,8 @@ impl Veriff {
                     identifier(s)?;
                 }
                 Ok((
-                    serde_json::to_string(&("veriff-document", &self.account, country, kind))
-                        .map_err(|_| Error::Configuration)?,
+                    serde_json::json!(["veriff-document", &self.account, country, kind])
+                        .to_string(),
                     number.to_owned(),
                 ))
             })

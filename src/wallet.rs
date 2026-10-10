@@ -172,21 +172,19 @@ impl WalletVerifier {
         {
             return Err(Error::Rejected);
         }
+        // Bound and check exact wire disclosures before allocating decoded values.
+        let mut seen = HashSet::new();
+        for disclosure in sd_part.split('~').skip(1) {
+            if !seen.insert(disclosure) {
+                return Err(Error::Rejected);
+            }
+            if disclosure.len() > 65536 || URL_SAFE_NO_PAD.decode(disclosure).is_err() {
+                return Err(Error::Rejected);
+            }
+        }
         let parsed = SdJwt::parse(presentation).map_err(|_| Error::Rejected)?;
         if parsed.claims()._sd_alg.as_deref().unwrap_or("sha-256") != "sha-256" {
             return Err(Error::Rejected);
-        }
-        let mut seen = HashSet::new();
-        for disclosure in parsed.disclosures() {
-            if !seen.insert(disclosure.as_str()) {
-                return Err(Error::Rejected);
-            }
-            // Reject alternate encodings and oversized individual disclosures.
-            if disclosure.as_str().len() > 65536
-                || URL_SAFE_NO_PAD.decode(disclosure.as_str()).is_err()
-            {
-                return Err(Error::Rejected);
-            }
         }
         let attributes = Value::Object(
             parsed
@@ -204,12 +202,12 @@ impl WalletVerifier {
                     .ok_or(Error::Unsupported)?;
                 identifier(id)?;
                 Ok((
-                    serde_json::to_string(&(
+                    serde_json::json!([
                         "sd-jwt",
                         &self.config.issuer,
-                        &self.config.credential_type,
-                    ))
-                    .map_err(|_| Error::Configuration)?,
+                        &self.config.credential_type
+                    ])
+                    .to_string(),
                     id.into(),
                 ))
             })
