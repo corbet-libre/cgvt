@@ -13,6 +13,6 @@ explicit; raw data and secrets never enter default Debug/errors/logs. Owned Rust
 forbids unsafe code. LGPL with linking exception, no GPL/AGPL-only dependencies.
 
 Hard no spending/live provider calls/account registration/publishing. Real
-upstream libraries with inert signed fixtures test behavior. Workstations edit
+upstream libraries with inert signed fixtures test behavior. Local checkouts edit
 and format; Crow compiles/tests committed candidates. Preserve existing quality
 and coverage checks. Clearly separate working integrations from candidates.
