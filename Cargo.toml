@@ -5,7 +5,7 @@ edition = "2024"
 rust-version = "1.88"
 description = "Government identity verification, requested claims and scoped registration limits"
 license = "LGPL-3.0-only WITH LGPL-3.0-linking-exception"
-repository = "https://git.corbet.ch/corbet-foss/cgvt"
+repository = "https://git.corbet.ch/corbet-libre/cgvt"
 readme = "README.md"
 publish = false
 include = ["Cargo.toml", "src/**", "README.md", "LICENSE", "LICENSE.md", "LICENSES/LGPL-3.0-only.txt", "LICENSES/LGPL-3.0-linking-exception.txt", "LICENSES/GPL-3.0-only.txt"]
@@ -18,7 +18,7 @@ unsafe_code = "forbid"
 missing_docs = "warn"
 
 [dependencies]
-cfbk = { git = "https://git.corbet.ch/corbet-foss/cfbk", branch = "main" }
+cfbk = { git = "https://git.corbet.ch/corbet-libre/cfbk", branch = "main" }
 sd-jwt-payload = "0.5"
 jsonwebtoken = { version = "11", default-features = false, features = ["rust_crypto"] }
 serde = { version = "1", features = ["derive"] }
